@@ -1,4 +1,5 @@
 ifeq ($(strip $(BOARD_HAVE_BLUETOOTH)),true)
+ifeq ($(strip $(BLUETOOTH_USE_BPLUS)),false)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -33,4 +34,5 @@ LOCAL_PROGUARD_ENABLED := disabled
 include $(BUILD_PACKAGE)
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
+endif
 endif
