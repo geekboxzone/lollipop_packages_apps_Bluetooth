@@ -480,6 +480,35 @@ static bt_callbacks_t sBluetoothCallbacks = {
     energy_info_recv_callback
 };
 
+#define WIFI_CHIP_TYPE_PATH	"/sys/class/rkwifi/chip"
+static int check_wifi_chip_type_string(char *type)
+{
+    int wififd, ret = 0;
+    char buf[64];
+
+    wififd = open(WIFI_CHIP_TYPE_PATH, O_RDONLY);
+    if( wififd < 0 ){
+        ALOGD("Can't open %s, errno = %d", WIFI_CHIP_TYPE_PATH, errno);
+        ret = -1;
+        goto fail_exit;
+    }
+    memset(buf, 0, 64);
+
+    if( 0 == read(wififd, buf, 10) ){
+        ALOGD("read %s failed", WIFI_CHIP_TYPE_PATH);
+        close(wififd);
+        ret = -1;
+        goto fail_exit;
+    }
+    close(wififd);
+    
+    strcpy(type, buf);
+    ALOGD("%s: %s", __func__, type);
+
+fail_exit:
+    return ret;
+}
+
 // The callback to call when the wake alarm fires.
 static alarm_cb sAlarmCallback;
 
@@ -720,7 +749,15 @@ static void classInitNative(JNIEnv* env, jclass clazz) {
 
     const char *id = (strcmp(value, "1")? BT_STACK_MODULE_ID : BT_STACK_TEST_MODULE_ID);
 
-    err = hw_get_module(id, (hw_module_t const**)&module);
+    char type[64];
+    check_wifi_chip_type_string(type);
+    if (!strncmp(type, "RTL", 3)) {
+        ALOGD("%s, load %s.default.so", __func__, BT_STACK_RTK_MODULE_ID);
+        err = hw_get_module(BT_STACK_RTK_MODULE_ID, (hw_module_t const**)&module);
+    } else {
+        ALOGD("%s, load %s.default.so", __func__, id);
+        err = hw_get_module(id, (hw_module_t const**)&module);
+    }
 
     if (err == 0) {
         hw_device_t* abstraction;
